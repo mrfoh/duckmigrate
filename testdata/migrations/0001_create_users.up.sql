@@ -1,0 +1,2 @@
+CREATE TABLE users (id INTEGER PRIMARY KEY, name VARCHAR NOT NULL);
+INSERT INTO users VALUES (1, 'ada'), (2, 'linus');

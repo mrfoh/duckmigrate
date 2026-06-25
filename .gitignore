@@ -27,6 +27,13 @@ go.work.sum
 # env file
 .env
 
+# build output and local databases
+/bin/
+bin/
+*.duckdb
+*.db
+*.db.wal
+
 # Editor/IDE
 # .idea/
 # .vscode/
