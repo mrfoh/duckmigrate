@@ -98,3 +98,6 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PERSONAL_TOKEN }}
+          # Pin the version to the tag that triggered the run; git tag-detection
+          # is ambiguous when several tags point at the same commit.
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
