@@ -41,12 +41,14 @@ jobs:
         include:
           - { goos: linux,   goarch: amd64, runner: ubuntu-latest }
           - { goos: linux,   goarch: arm64, runner: ubuntu-24.04-arm }
-          - { goos: darwin,  goarch: amd64, runner: macos-13 }
+          - { goos: darwin,  goarch: amd64, runner: macos-14 }
           - { goos: darwin,  goarch: arm64, runner: macos-14 }
           - { goos: windows, goarch: amd64, runner: windows-latest }
     runs-on: ${{ matrix.runner }}
     env:
       CGO_ENABLED: "1"
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
@@ -58,6 +60,11 @@ jobs:
         run: |
           ext=""
           [ "${{ matrix.goos }}" = "windows" ] && ext=".exe"
+          # darwin/amd64 is cross-built on an Apple Silicon runner (Intel macOS
+          # runners are retired); point clang at the x86_64 slice of the SDK.
+          if [ "${{ matrix.goos }}-${{ matrix.goarch }}" = "darwin-amd64" ]; then
+            export CC="clang -arch x86_64" CXX="clang++ -arch x86_64"
+          fi
           go build -trimpath \
             -ldflags "-s -w -X github.com/mrfoh/duckmigrate/cli.version=${GITHUB_REF_NAME#v}" \
             -o "dist/duckmigrate${ext}" ./cmd/duckmigrate
