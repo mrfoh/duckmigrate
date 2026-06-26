@@ -1,16 +1,15 @@
 version: 2
 project_name: duckmigrate
 
-before:
-  hooks:
-  - go mod tidy
-
+# DuckDB is a CGO dependency whose prebuilt Windows static libs target the UCRT,
+# which goreleaser-cross's MSVCRT mingw can't link. Each binary is instead built
+# natively on its own runner (see .github/workflows/ci.yml); the gobinary shim
+# feeds those prebuilt binaries to GoReleaser (the OSS prebuilt builder is Pro-only).
 builds:
 - id: duckmigrate
   main: ./cmd/duckmigrate
   binary: duckmigrate
-  # DuckDB is a CGO dependency and ships prebuilt static libs only for these
-  # platforms. Cross-compilation toolchains are provided by goreleaser-cross.
+  gobinary: ./scripts/prebuilt-go.sh
   goos:
   - linux
   - darwin
@@ -21,32 +20,6 @@ builds:
   ignore:
   - goos: windows
     goarch: arm64
-  env:
-  - CGO_ENABLED=1
-  - >-
-    {{- if eq .Os "darwin" }}
-      {{- if eq .Arch "amd64" }}CC=o64-clang{{- end }}
-      {{- if eq .Arch "arm64" }}CC=oa64-clang{{- end }}
-    {{- else if eq .Os "windows" }}CC=x86_64-w64-mingw32-gcc
-    {{- else }}
-      {{- if eq .Arch "amd64" }}CC=x86_64-linux-gnu-gcc{{- end }}
-      {{- if eq .Arch "arm64" }}CC=aarch64-linux-gnu-gcc{{- end }}
-    {{- end }}
-  - >-
-    {{- if eq .Os "darwin" }}
-      {{- if eq .Arch "amd64" }}CXX=o64-clang++{{- end }}
-      {{- if eq .Arch "arm64" }}CXX=oa64-clang++{{- end }}
-    {{- else if eq .Os "windows" }}CXX=x86_64-w64-mingw32-g++
-    {{- else }}
-      {{- if eq .Arch "amd64" }}CXX=x86_64-linux-gnu-g++{{- end }}
-      {{- if eq .Arch "arm64" }}CXX=aarch64-linux-gnu-g++{{- end }}
-    {{- end }}
-  ldflags:
-  - -s -w -X github.com/mrfoh/duckmigrate/cli.version={{.Version}}
-  # DuckDB's windows static lib references pthread_* but the bindings' LDFLAGS
-  # omit -lpthread. Add it; winpthread links statically via the bindings' own --static.
-  - >-
-    {{- if eq .Os "windows" }}-extldflags=-lpthread{{- end }}
 
 archives:
 - id: default
