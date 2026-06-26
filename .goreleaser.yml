@@ -43,6 +43,10 @@ builds:
     {{- end }}
   ldflags:
   - -s -w -X github.com/mrfoh/duckmigrate/cli.version={{.Version}}
+  # mingw doesn't auto-link winpthread, but DuckDB's static lib references pthread_*.
+  # Link it (plus libgcc/libstdc++) statically so the .exe stays self-contained.
+  - >-
+    {{- if eq .Os "windows" }}-extldflags '-static -lpthread'{{- end }}
 
 archives:
 - id: default
