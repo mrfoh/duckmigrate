@@ -12,6 +12,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// version is set at build time via -ldflags -X.
+var version = "dev"
+
 type app struct {
 	database    string
 	path        string
@@ -38,6 +41,7 @@ func (a *app) root() *cobra.Command {
 	root := &cobra.Command{
 		Use:           "duckmigrate",
 		Short:         "Database migrations for DuckDB",
+		Version:       version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 	}

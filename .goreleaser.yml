@@ -1,0 +1,111 @@
+version: 2
+project_name: duckmigrate
+
+before:
+  hooks:
+  - go mod tidy
+
+builds:
+- id: duckmigrate
+  main: ./cmd/duckmigrate
+  binary: duckmigrate
+  # DuckDB is a CGO dependency and ships prebuilt static libs only for these
+  # platforms. Cross-compilation toolchains are provided by goreleaser-cross.
+  goos:
+  - linux
+  - darwin
+  - windows
+  goarch:
+  - amd64
+  - arm64
+  ignore:
+  - goos: windows
+    goarch: arm64
+  env:
+  - CGO_ENABLED=1
+  - >-
+    {{- if eq .Os "darwin" }}
+      {{- if eq .Arch "amd64" }}CC=o64-clang{{- end }}
+      {{- if eq .Arch "arm64" }}CC=oa64-clang{{- end }}
+    {{- else if eq .Os "windows" }}CC=x86_64-w64-mingw32-gcc
+    {{- else }}
+      {{- if eq .Arch "amd64" }}CC=x86_64-linux-gnu-gcc{{- end }}
+      {{- if eq .Arch "arm64" }}CC=aarch64-linux-gnu-gcc{{- end }}
+    {{- end }}
+  - >-
+    {{- if eq .Os "darwin" }}
+      {{- if eq .Arch "amd64" }}CXX=o64-clang++{{- end }}
+      {{- if eq .Arch "arm64" }}CXX=oa64-clang++{{- end }}
+    {{- else if eq .Os "windows" }}CXX=x86_64-w64-mingw32-g++
+    {{- else }}
+      {{- if eq .Arch "amd64" }}CXX=x86_64-linux-gnu-g++{{- end }}
+      {{- if eq .Arch "arm64" }}CXX=aarch64-linux-gnu-g++{{- end }}
+    {{- end }}
+  ldflags:
+  - -s -w -X github.com/mrfoh/duckmigrate/cli.version={{.Version}}
+
+archives:
+- id: default
+  name_template: "{{ .ProjectName }}-v{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  formats: [tar.gz]
+  files:
+  - LICENSE*
+  - README*
+  format_overrides:
+  - goos: windows
+    formats: [zip]
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+    - '^ci:'
+    - '^chore:'
+    - Merge pull request
+    - Merge branch
+
+# Scoop bucket integration
+scoops:
+- name: duckmigrate
+  description: "Database migrations for DuckDB, as a Go library and a Cobra CLI."
+  homepage: "https://github.com/mrfoh/duckmigrate"
+  license: "MIT"
+  repository:
+    owner: mrfoh
+    name: scoopbucket
+    branch: main
+    token: "{{ .Env.GITHUB_TOKEN }}"
+  commit_author:
+    name: GitHub Actions Bot
+    email: github-actions[bot]@users.noreply.github.com
+  commit_msg_template: "chore: update duckmigrate manifest to {{ .Tag }} [skip ci]"
+  directory: bucket
+
+# Homebrew tap integration
+brews:
+- name: duckmigrate
+  description: "Database migrations for DuckDB, as a Go library and a Cobra CLI."
+  homepage: "https://github.com/mrfoh/duckmigrate"
+  license: "MIT"
+  repository:
+    owner: mrfoh
+    name: homebrewtap
+    branch: main
+    token: "{{ .Env.GITHUB_TOKEN }}"
+  commit_author:
+    name: GitHub Actions Bot
+    email: github-actions[bot]@users.noreply.github.com
+  commit_msg_template: "chore: update duckmigrate formula to {{ .Tag }} [skip ci]"
+  directory: Formula
+  install: |
+    bin.install "duckmigrate"
+  test: |
+    system "#{bin}/duckmigrate", "--version"
